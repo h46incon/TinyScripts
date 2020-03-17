@@ -85,10 +85,16 @@ namespace @INCON_SCRIPTING_NAMESPACE@
     { 
         [DllImport("user32.dll")] 
         public static extern int EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode); 
+		
+		[DllImport("user32.dll")]
+        public static extern bool EnumDisplayDevices(string lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
+		
         [DllImport("user32.dll")] 
         public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags); 
-        [DllImport("user32.dll")]
-        public static extern bool EnumDisplayDevices(string lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
+		
+		[DllImport("user32.dll")]
+		public static extern int ChangeDisplaySettingsEx(string lpszDeviceName, ref DEVMODE lpDevMode, IntPtr hwnd, int dwflags, IntPtr lParam);
+
 
         public const int ENUM_CURRENT_SETTINGS = -1; 
         public const int CDS_UPDATEREGISTRY = 0x01; 
@@ -108,21 +114,62 @@ namespace @INCON_SCRIPTING_NAMESPACE@
     { 
         static public void Main(string[] args) 
         { 
-            var device = new DISPLAY_DEVICE();
-            device.cb = Marshal.SizeOf(device);
+			string device_name = null;
 			
-			uint main_display_index = 0;
-            NativeMethods.EnumDisplayDevices(null, main_display_index, ref device, 0);
-			
-			Console.WriteLine("Changing orientation: {0}  ({1})", device.DeviceName, device.DeviceString);
-
-            DEVMODE dm = GetDevMode(); 
-            if (NativeMethods.EnumDisplaySettings(device.DeviceName, NativeMethods.ENUM_CURRENT_SETTINGS, ref dm) == 0)
+			for(uint display_index = 0; ; ++display_index) 
 			{
-				Console.WriteLine("Failed To Change The Resolution."); 
+				var device = new DISPLAY_DEVICE();
+				device.cb = Marshal.SizeOf(device);
+				if (!NativeMethods.EnumDisplayDevices(null, display_index, ref device, 0))
+				{
+					Console.WriteLine("----------------------------------------------------------");
+					Console.WriteLine("Finish enuming devices");
+					break;
+				}
+				
+				Console.WriteLine("----------------------------------------------------------");
+				Console.WriteLine("Changing orientation: [{0}]  [{1}]  [{2}]  [{3}]", device.DeviceName, device.DeviceString, device.DeviceID, device.StateFlags);
+				
+				if ((device.StateFlags & DisplayDeviceStateFlags.AttachedToDesktop) == 0)
+				{
+					Console.WriteLine("Device not connected to desktop, ignore");
+					continue;
+				}
+				
+				var device_detail = new DISPLAY_DEVICE();
+				device_detail.cb = Marshal.SizeOf(device_detail);
+				if(!NativeMethods.EnumDisplayDevices(device.DeviceName, 0, ref device_detail, 0))
+				{
+					Console.WriteLine("Get display detail information failed");
+					continue;
+				}
+				Console.WriteLine("Changing orientation: [{0}]  [{1}]  [{2}]  [{3}]", device_detail.DeviceName, device_detail.DeviceString, device_detail.DeviceID, device_detail.StateFlags);
+			
+				if (device_detail.DeviceID == @"MONITOR\LEN40BE\{4d36e96e-e325-11ce-bfc1-08002be10318}\0001")
+				{
+					device_name = device.DeviceName;
+					break;
+				}
+			}
+
+			
+			Console.WriteLine("\n\n");
+			
+			
+            if(string.IsNullOrEmpty(device_name))
+			{
+				Console.WriteLine("Get display to rotate failed");
 				return;
 			}
 			
+			DEVMODE dm = new DEVMODE();
+			if (NativeMethods.EnumDisplaySettings(device_name, NativeMethods.ENUM_CURRENT_SETTINGS, ref dm) == 0)
+			{
+				Console.WriteLine("Enum Display setting failed."); 
+				return;
+			}
+
+
 			// determine new orientation based on the current orientation
 			switch(dm.dmDisplayOrientation)
 			{
@@ -137,7 +184,7 @@ namespace @INCON_SCRIPTING_NAMESPACE@
 					return;
 			}
 
-			int iRet = NativeMethods.ChangeDisplaySettings(ref dm, NativeMethods.CDS_TEST); 
+			int iRet = NativeMethods.ChangeDisplaySettingsEx(device_name, ref dm, IntPtr.Zero, NativeMethods.CDS_TEST, IntPtr.Zero); 
 
 			if (iRet == NativeMethods.DISP_CHANGE_FAILED) 
 			{ 
@@ -146,7 +193,7 @@ namespace @INCON_SCRIPTING_NAMESPACE@
 			} 
 			else 
 			{ 
-				iRet = NativeMethods.ChangeDisplaySettings(ref dm, NativeMethods.CDS_UPDATEREGISTRY); 
+				iRet = NativeMethods.ChangeDisplaySettingsEx(device_name, ref dm, IntPtr.Zero, NativeMethods.CDS_UPDATEREGISTRY, IntPtr.Zero); 
 				switch (iRet) 
 				{ 
 					case NativeMethods.DISP_CHANGE_SUCCESSFUL: 
