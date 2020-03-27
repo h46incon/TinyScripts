@@ -18,16 +18,19 @@ class Generator:
         self._dir = os.getcwd()
         self._pb_exec = 'protoc'
         self._force = False
+        self._noSyntaxMissingWarning = True
         self._conf = {}
         self._target_conf = {}
 
     def gen(self):
         parser = argparse.ArgumentParser()
-        parser.add_argument('-b', '--base_dir', help='base dir for pb. default current dir')
-        parser.add_argument('-d', '--pb_dir', help='base dir containing .proto files. default base_dir')
+        parser.add_argument('-b', '--base_dir', help='base dir for pb. default: current dir')
+        parser.add_argument('-d', '--pb_dir', help='base dir containing .proto files. default: base_dir')
         parser.add_argument('-t', '--target', help='single target name')
-        parser.add_argument('-f', '--force', help='force generation', action='store_true')
+        parser.add_argument('-f', '--force', help='force generation', action='store_true', default=False)
         parser.add_argument('--protoc', help='protoc path. default protoc')
+        parser.add_argument('--show-syntax-missing-warning', help='show syntax missing warning of protoc', action='store_true', default=False)
+        parser.add_argument("--log-level", default=logging.INFO, help="Configure the logging level. default: INFO", type=lambda x: getattr(logging, x))
         args = parser.parse_args()
 
         if args.base_dir:
@@ -36,8 +39,12 @@ class Generator:
         if args.protoc:
             self._pb_exec = args.protoc
 
-        if args.force:
-            self._force = args.force
+        self._force = args.force
+        self._noSyntaxMissingWarning = not args.show_syntax_missing_warning
+        logging.basicConfig(
+            level=args.log_level,
+            format='[%(asctime)s] [%(levelname)s] %(message)s'
+        )
 
         self._read_config()
 
@@ -115,20 +122,34 @@ class Generator:
         ]
 
         logging.debug('gen_cmd: %s', str(gen_cmd))
-        ret = subprocess.call(gen_cmd, shell=False)
+        ret = 0
+        try:
+            output = subprocess.check_output(gen_cmd, shell=False, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            output = e.output
+            ret = e.returncode
+
+        for line in output.split('\n'):
+            if not line:
+                continue
+            if self._noSyntaxMissingWarning:
+                if line.find('No syntax specified for the proto file') != -1:
+                    continue
+            logging.info('protoc output: ' + line)
+
         target_key = self._get_target_key(pb_path)
         rel_path = os.path.relpath(pb_path, self._dir)
         cur_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         if ret == 0:
             logging.debug('gen pb succ: %s', pb_path)
-            self._strip_gened_files(pb_path)
+            self._strip_gened_files(pb_path, cur_time)
             self._target_conf.setdefault(target_key, {})[rel_path] = cur_time
         else:
             self._target_conf.setdefault(target_key, {})[rel_path] = ''
             logging.error('gen pb failed')
 
-    def _strip_gened_files(self, pb_path):
+    def _strip_gened_files(self, pb_path, gen_time):
         # remove extension
         if pb_path.endswith(self._pb_ext):
             pb_path = pb_path[:-len(self._pb_ext)]
@@ -142,6 +163,10 @@ class Generator:
         with open(hpp_path, 'r+') as f:
             content = f.readlines()
             out = []
+            out.append('// -------------------------- This File has striped by gen_pb.py ------------------- \n')
+            out.append('// ' + gen_time + '\n')
+            out.append('// --------------------------------------------------------------------------------- \n')
+            out.append('\n')
             it = iter(content)
 
             def get_pp_cmd(str):
@@ -162,7 +187,7 @@ class Generator:
                 return None
 
             # find #if !PROTOBUF_INLINE_NOT_IN_HEADERS
-            unmatch = 0     # count of unmatched #if
+            unmatch = 0  # count of unmatched #if
             while True:
                 try:
                     line = next(it)
@@ -236,8 +261,4 @@ class Generator:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='[%(asctime)s] [%(levelname)s] %(message)s'
-    )
     Generator().gen()
