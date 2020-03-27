@@ -18,9 +18,10 @@ class Generator:
         self._dir = os.getcwd()
         self._pb_exec = 'protoc'
         self._force = False
-        self._noSyntaxMissingWarning = True
+        self._show_syntax_missing_warning = True
         self._conf = {}
         self._target_conf = {}
+        self._has_err = False
 
     def gen(self):
         parser = argparse.ArgumentParser()
@@ -40,7 +41,7 @@ class Generator:
             self._pb_exec = args.protoc
 
         self._force = args.force
-        self._noSyntaxMissingWarning = not args.show_syntax_missing_warning
+        self._show_syntax_missing_warning = args.show_syntax_missing_warning
         logging.basicConfig(
             level=args.log_level,
             format='[%(asctime)s] [%(levelname)s] %(message)s'
@@ -56,6 +57,9 @@ class Generator:
             self._gen_dir(self._dir)
 
         self._write_config()
+        logging.info('Generation finished')
+        if self._has_err:
+            logging.error('*** *** Some error occurred, please check log! *** ***')
 
     def _gen_target(self, target):
         logging.info("Generating target... %s", target)
@@ -103,6 +107,7 @@ class Generator:
             return True
         except ValueError as e:
             logging.error('Value error when check need gen: %s', f_path)
+            self._has_err = True
             return True
 
     def _do_gen(self, pb_path):
@@ -112,6 +117,7 @@ class Generator:
 
         if not os.path.isfile(pb_path):
             logging.error('proto file not found: %s', pb_path)
+            self._has_err = True
             return
 
         gen_cmd = [
@@ -132,7 +138,7 @@ class Generator:
         for line in output.split('\n'):
             if not line:
                 continue
-            if self._noSyntaxMissingWarning:
+            if not self._show_syntax_missing_warning:
                 if line.find('No syntax specified for the proto file') != -1:
                     continue
             logging.info('protoc output: ' + line)
@@ -148,6 +154,7 @@ class Generator:
         else:
             self._target_conf.setdefault(target_key, {})[rel_path] = ''
             logging.error('gen pb failed')
+            self._has_err = True
 
     def _strip_gened_files(self, pb_path, gen_time):
         # remove extension
