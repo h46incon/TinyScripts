@@ -19,19 +19,21 @@ class Generator:
         self._pb_exec = 'protoc'
         self._force = False
         self._show_syntax_missing_warning = True
+        self._conf_path = None
         self._conf = {}
         self._target_conf = {}
         self._has_err = False
 
     def gen(self):
         parser = argparse.ArgumentParser()
-        parser.add_argument('-b', '--base_dir', help='base dir for pb. default: current dir')
+        parser.add_argument('-b', '--base_dir', help='base dir for pb. default: CURRENT_DIR')
         parser.add_argument('-d', '--pb_dir', help='base dir containing .proto files. default: base_dir')
         parser.add_argument('-t', '--target', help='single target name')
         parser.add_argument('-f', '--force', help='force generation', action='store_true', default=False)
         parser.add_argument('--protoc', help='protoc path. default protoc')
         parser.add_argument('--show-syntax-missing-warning', help='show syntax missing warning of protoc', action='store_true', default=False)
-        parser.add_argument("--log-level", default=logging.INFO, help="Configure the logging level. default: INFO", type=lambda x: getattr(logging, x))
+        parser.add_argument("--log-level", default=logging.INFO, help="cjonfigure the logging level. default: INFO", type=lambda x: getattr(logging, x))
+        parser.add_argument('--conf-file', help='config file path. default base_dir/gen_pb.conf')
         args = parser.parse_args()
 
         if args.base_dir:
@@ -42,11 +44,19 @@ class Generator:
 
         self._force = args.force
         self._show_syntax_missing_warning = args.show_syntax_missing_warning
+
+        if args.conf_file:
+            self._conf_path = args.conf_file
+        else:
+            self._conf_path = os.path.join(self._dir, 'gen_pb.conf')
+        self._conf_path = os.path.abspath(self._conf_path)
+
         logging.basicConfig(
             level=args.log_level,
             format='[%(asctime)s] [%(levelname)s] %(message)s'
         )
 
+        logging.debug('Config file: ' + self._conf_path)
         self._read_config()
 
         if args.target:
@@ -245,11 +255,8 @@ class Generator:
             file_name = file_name[:-len(self._pb_ext)]
         return file_name
 
-    def _conf_path(self):
-        return os.path.join(self._dir, 'gen_pb.conf')
-
     def _read_config(self):
-        conf_path = self._conf_path()
+        conf_path = self._conf_path
         self._conf = {}
         if os.path.exists(conf_path):
             with open(conf_path, 'r') as f:
@@ -259,7 +266,7 @@ class Generator:
         self._target_conf = self._conf.get('target', {})
 
     def _write_config(self):
-        conf_path = self._conf_path()
+        conf_path = self._conf_path
         with open(conf_path, 'w') as f:
             self._conf['target'] = self._target_conf
             content = json.dumps(self._conf, indent=4)
