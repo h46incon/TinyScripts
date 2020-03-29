@@ -3,6 +3,7 @@ export LS_COLORS='rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;
 # ------------------------------------------------ Completion Config
 
 autoload -U compaudit compinit
+compinit -u -C
 
 # fixme - the load process here seems a bit bizarre
 zmodload -i zsh/complist
@@ -37,7 +38,7 @@ zstyle ':completion:*:cd:*' tag-order local-directories directory-stack path-dir
 
 # Use caching so that commands like apt and dpkg complete are useable
 zstyle ':completion::complete:*' use-cache 1
-zstyle ':completion::complete:*' cache-path $ZSH_CACHE_DIR
+#zstyle ':completion::complete:*' cache-path $ZSH_CACHE_DIR
 
 
 # ----------------------------------------- history and cd
