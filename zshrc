@@ -1,11 +1,5 @@
 export LS_COLORS='rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=01;34:ow=01;34:st=37;44:ex=01;32:'
 
-export QUOTING_STYLE=literal
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-
-setopt interactivecomments
-
 # ------------------------------------------------ Completion Config
 
 autoload -U compaudit compinit
@@ -174,4 +168,19 @@ alias lsa='ls -lah'
 alias l='ls -lah'
 alias ll='ls -lh'
 alias la='ls -lAh'
+
+#------------------------------ Other settings
+
+PROMPT=""
+PROMPT="${PROMPT}%{%f%b%k%}" # reset color to default
+PROMPT="${PROMPT}%{%K{black}%F{default}%}[%?-%n] " # ret code and user name
+PROMPT="${PROMPT}%{%K{blue}%F{black}%} %~ " # pwd path
+PROMPT="${PROMPT}%{%f%b%k%} " # restart color to default
+# %{%f%b%k%}%{%K{black}%F{default}%}[%?-%n] %{%K{blue}%F{black}%} %~ %{%f%k%}
+
+export QUOTING_STYLE=literal
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+setopt interactivecomments
 
