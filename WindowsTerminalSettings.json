@@ -1,0 +1,69 @@
+{
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "alwaysShowTabs": true,
+    "copyOnSelect": false,
+    "defaultProfile": "{948db40a-ccd4-4aa0-ab2a-d9fab8fa08dc}",
+    "initialCols": 120,
+    "initialRows": 48,
+    "keybindings": 
+    [
+    ],
+    "profiles": 
+    {
+        "defaults": {},
+        "list": 
+        [
+            {
+                "acrylicOpacity": 0.75,
+                "antialiasingMode": "grayscale",
+                "backgroundImage": "D:\\home\\WallPaper\\ChMkJlbKwdSIBXyaABDQ5_X5vbEAALGegFJFcIAEND_912_blur.jpg",
+                "closeOnExit": "graceful",
+                "colorScheme": "xTerm",
+                "commandline": "wsl.exe -d Ubuntu-20.04",
+                "cursorColor": "#00FF00",
+                "cursorHeight": 50,
+                "cursorShape": "vintage",
+                "fontFace": "JetBrains Mono NL",
+                "fontSize": 10,
+                "guid": "{948db40a-ccd4-4aa0-ab2a-d9fab8fa08dc}",
+                "historySize": 9001,
+                "icon": "D:\\home\\wsl_tools\\ubuntu.ico",
+                "name": "Ubuntu-20.04",
+                "padding": "0, 0, 0, 0",
+                "snapOnInput": true,
+                "startingDirectory": "%USERPROFILE%",
+                "suppressApplicationTitle": true,
+                "useAcrylic": false
+            }
+        ]
+    },
+    "schemes": 
+    [
+        {
+            "background": "#002B36",
+            "black": "#000000",
+            "blue": "#1E90F5",
+            "brightBlack": "#555555",
+            "brightBlue": "#50BEFF",
+            "brightCyan": "#55FFFF",
+            "brightGreen": "#55FF55",
+            "brightPurple": "#FF55FF",
+            "brightRed": "#FF5555",
+            "brightWhite": "#FFFFFF",
+            "brightYellow": "#FFF555",
+            "cursorColor": "#FFFFFF",
+            "cyan": "#00CDCD",
+            "foreground": "#E5E5E5",
+            "green": "#006400",
+            "name": "xTerm",
+            "purple": "#BB00BB",
+            "red": "#BB0000",
+            "selectionBackground": "#FFFFFF",
+            "white": "#EBEBEB",
+            "yellow": "#C8AF00"
+        }
+    ],
+    "showTabsInTitlebar": true,
+    "showTerminalTitleInTitlebar": false,
+    "wordDelimiters": " ./\\()\"'-:,.;<>~!@#$%^&*|+=[]{}~?\u2502"
+}
